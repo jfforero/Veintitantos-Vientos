@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>White Minimalist Crop Desktop</title>
+    <style>
+        :root {
+            --bg-color: #0a0a0c;
+            --win-bg: #18181b;
+            --accent: #ffffff;
+            --border: rgba(255, 255, 255, 0.1);
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: var(--bg-color);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        /* The canvas where everything lives */
+        #desktop {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            background: radial-gradient(circle at center, #1e1e24 0%, #0a0a0c 100%);
+        }
+
+        /* Glassmorphism Toolbar */
+        .toolbar {
+            position: fixed;
+            bottom: 25px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100000;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 12px 24px;
+            border-radius: 40px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(12px);
+            display: flex;
+            gap: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        }
+
+        button.main-btn {
+            padding: 8px 20px;
+            cursor: pointer;
+            background: var(--accent);
+            border: none;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #000;
+            transition: all 0.2s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        button.main-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255,255,255,0.2);
+        }
+
+        /* Crop Window Styling */
+        .crop-window {
+            position: absolute;
+            background: var(--win-bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.7);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            transition: border-color 0.2s;
+        }
+        .crop-window:hover {
+            border-color: rgba(255,255,255,0.3);
+        }
+
+        /* Modern White Close Button UI */
+        .win-header {
+            background: rgba(0,0,0,0.3);
+            height: 28px;
+            padding: 0 8px;
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            cursor: move;
+        }
+
+        .close-btn {
+            width: 18px;
+            height: 18px;
+            background: none;
+            border: 1.5px solid white;
+            border-radius: 4px;
+            cursor: pointer;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s, transform 0.1s;
+            opacity: 0.7;
+        }
+        .close-btn::before, .close-btn::after {
+            content: '';
+            position: absolute;
+            width: 10px;
+            height: 1.5px;
+            background: white;
+        }
+        .close-btn::before { transform: rotate(45deg); }
+        .close-btn::after { transform: rotate(-45deg); }
+
+        .close-btn:hover {
+            opacity: 1;
+            background: white;
+        }
+        .close-btn:hover::before, .close-btn:hover::after {
+            background: black;
+        }
+
+        .win-content {
+            position: relative;
+            flex-grow: 1;
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        .win-content img {
+            position: absolute;
+            max-width: none;
+            filter: contrast(1.1) brightness(0.9);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="toolbar">
+        <button class="main-btn" onclick="resortWindows()">Resort All</button>
+        <button class="main-btn" onclick="spawnCrops(10)" style="background: transparent; color: white; border: 1px solid white;">Add +10</button>
+    </div>
+
+    <div id="desktop"></div>
+
+    <img id="sourceImage" src="veintitantosvientos.jpg" style="display:none;">
+
+    <script>
+        const desktop = document.getElementById('desktop');
+        const source = document.getElementById('sourceImage');
+        let zIndexCounter = 10;
+
+        function spawnCrops(count) {
+            if (!source.complete) return;
+            for (let i = 0; i < count; i++) {
+                createWindow();
+            }
+        }
+
+        function createWindow() {
+            const imgW = source.naturalWidth;
+            const imgH = source.naturalHeight;
+
+            // Varied sizes for the windows
+            const winW = Math.floor(Math.random() * 120) + 120;
+            const winH = Math.floor(Math.random() * 120) + 120;
+
+            const cropX = Math.floor(Math.random() * (imgW - winW));
+            const cropY = Math.floor(Math.random() * (imgH - winH));
+
+            const win = document.createElement('div');
+            win.className = 'crop-window';
+            win.style.width = winW + 'px';
+            win.style.height = winH + 'px';
+            
+            // Random scatter
+            win.style.left = Math.random() * (window.innerWidth - winW) + 'px';
+            win.style.top = Math.random() * (window.innerHeight - winH) + 'px';
+            win.style.zIndex = zIndexCounter++;
+
+            win.innerHTML = `
+                <div class="win-header">
+                    <button class="close-btn" title="Close" onclick="this.parentElement.parentElement.remove()"></button>
+                </div>
+                <div class="win-content">
+                    <img src="${source.src}" style="left: -${cropX}px; top: -${cropY}px;">
+                </div>
+            `;
+
+            makeDraggable(win);
+            desktop.appendChild(win);
+        }
+
+        function resortWindows() {
+            const windows = document.querySelectorAll('.crop-window');
+            windows.forEach(win => {
+                const winW = win.offsetWidth;
+                const winH = win.offsetHeight;
+                win.style.left = Math.random() * (window.innerWidth - winW) + 'px';
+                win.style.top = Math.random() * (window.innerHeight - winH) + 'px';
+            });
+        }
+
+        function makeDraggable(el) {
+            let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+            el.onmousedown = (e) => {
+                if(e.target.closest('.close-btn')) return;
+                el.style.zIndex = zIndexCounter++;
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                document.onmouseup = () => {
+                    document.onmouseup = null;
+                    document.onmousemove = null;
+                };
+                document.onmousemove = (e) => {
+                    pos1 = pos3 - e.clientX;
+                    pos2 = pos4 - e.clientY;
+                    pos3 = e.clientX;
+                    pos4 = e.clientY;
+                    el.style.top = (el.offsetTop - pos2) + "px";
+                    el.style.left = (el.offsetLeft - pos1) + "px";
+                };
+            };
+        }
+
+        // Generate 60 crops once the image is ready
+        source.onload = () => spawnCrops(60);
+        if(source.complete) spawnCrops(60);
+    </script>
+</body>
+</html>
